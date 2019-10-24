@@ -5,6 +5,7 @@ from time import sleep
 from threading import Lock, Thread 
 import sys
 import argparse
+import os
 
 #handle listening and displaying messages
 class CHAT():
@@ -12,7 +13,7 @@ class CHAT():
   def __init__(self,dstip,interface):
     self.dstip=dstip
     self.interface=interface
-  
+ 
   def display_msg(self,pkt):
       try:
         print('')
@@ -20,15 +21,16 @@ class CHAT():
       except:pass
   def listen(self): 
     while 1: 
-      sniff(iface=self.interface, prn=self.display_msg, filter="icmp and icmp[0]=0", store=0, count=10)
+      sniff(iface=self.interface, prn=self.display_msg, filter="host "+self.dstip+" and icmp and icmp[0]=0", store=0, count=10)
       sleep(1)
       
   def receive_input(self): 
     while 1: 
       print('')
       text=input("Type to send: ")
+      if text == 'exit()': os._exit(0)    
       MESSAGE(self.dstip).send_msg(text)
-      sleep(1)
+      sleep(0)
 
 #sending message
 class MESSAGE():
@@ -46,11 +48,17 @@ class MESSAGE():
 def main():
     parser = argparse.ArgumentParser(description='Please run as root and specify destination ip with -d flag')
     parser.add_argument('-d', type=str, help='Destination IP')
-    parser.add_argument('-i', type=str, default='eth0', help='Local interface name to send and listen')
+    parser.add_argument('-i', type=str, default='eth0', help='Local interface name to send and listen, default is eth0')
     args = parser.parse_args()
     dstip = args.__dict__.get('d')
     interface = args.__dict__.get('i')
-    print("Starting chat with "+dstip+' on '+interface+' !') 
+    
+    try: 
+        print("Starting chat with "+dstip+' on '+interface+' ! Type exit() to exit')
+    except:
+        print('Please check options with -h flag')
+        exit(0)
+        
     
     threads = []
     for func in [CHAT(dstip,interface).listen,CHAT(dstip,interface).receive_input]: 
